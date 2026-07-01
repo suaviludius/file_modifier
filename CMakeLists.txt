@@ -8,13 +8,33 @@ find_package(Qt6 REQUIRED COMPONENTS Quick)
 
 qt_standard_project_setup(REQUIRES 6.10)
 
+qt6_add_resources(RESOURCES_FILES
+    qml/resources/resources.qrc
+)
+
+# Чтобы не добавлять файлы самим, просто укажем к ним дирректории
+file(GLOB_RECURSE SOURCE_FILES
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp
+)
+file(GLOB_RECURSE HEADER_FILES
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/*.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/*.hpp
+)
+
 # Content of downloaded design from Figma to Qt or similar
 if (EXISTS "${CMAKE_CURRENT_LIST_DIR}/importedcontent/CMakeLists.txt")
     add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/importedcontent)
 endif()
 
 qt_add_executable(appfile_modifier
-    src/main.cpp
+    ${SOURCE_FILES}
+    ${HEADER_FILES}
+    ${RESOURCES_FILES}
+)
+
+target_include_directories(appfile_modifier
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
 qt_add_qml_module(appfile_modifier
