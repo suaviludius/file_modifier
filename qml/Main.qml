@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls.Basic
+import QtQuick.Dialogs
 
 
 ApplicationWindow {
@@ -14,12 +15,25 @@ ApplicationWindow {
     property color mainDarkColor: "#255a66"
     property color successColor: "#3fee85"
     property color errorColor: "#e95349"
+    property color pauseColor: "#FF9800"
     property color backgroundColor: "#3e4556"
     property color backgroundDarkColor: "#24272d"
     property color versionColor: "#757575"
     property color textColor: "white"
 
     color: backgroundDarkColor
+
+    // Создаем слоты на изменения свойств
+    // Connections {
+    //     target: backend
+
+    //     // function onStatusChanged(status) {
+    //     //     statusLabel.text = status
+    //     //     statusLabel.color = status === "Running" ? successColor :
+    //     //                        status === "Paused" ? pauseColor :
+    //     //                        status === "Error" ? errorColor : textColor
+    //     // }
+    // }
 
     ColumnLayout {
         anchors.fill: parent
@@ -97,6 +111,7 @@ ApplicationWindow {
                         //Layout.fillHeight: true
                         Layout.preferredWidth: 100
                         Layout.preferredHeight: 40
+
                         background: Rectangle {
                                         //implicitWidth: 100
                                         //implicitHeight: 40
@@ -104,14 +119,36 @@ ApplicationWindow {
                                         radius: 8 // Sets corner radius
                                     }
 
-                        onClicked: backend.selectFolder()
+                        onClicked: folderDialog.open()
+                    }
+
+                    FolderDialog {
+                        id: folderDialog
+                        title: qsTr("Выберите входную папку")
+
+                        onAccepted: {
+                            var cleanPath = folderDialog.selectedFolder.toString();
+                            // Убираем префикс схемы, если он есть (а у меня он всегда есть)
+                            if (cleanPath.startsWith("file:///")) {
+                                // Для Windows (оставляем "C:/Folder") или Linux/macOS (оставляем "/home/user")
+                                cleanPath = cleanPath.substring(8);
+                            } else if (cleanPath.startsWith("file://")) {
+                                cleanPath = cleanPath.substring(7);
+                            }
+                            // Декодируем пробелы и спецсимволы (например, %20 обратно в пробел)
+                            pathField.text = decodeURIComponent(cleanPath);
+                        }
+
+                        onRejected: {
+                            console.log("Пользователь отменил выбор папки")
+                        }
                     }
                 }
                 Text { // Строка ошибки для пути
                     id: pathError
                     text: "Выберите папку для поиска файлов"
                     color: errorColor
-                    font.pixelSize: 11
+                    font.pixelSize: 14
                     visible: false
                     //Layout.leftMargin: 30
                 }
@@ -134,7 +171,7 @@ ApplicationWindow {
                         Layout.fillWidth: true
                         //Layout.fillHeight: true
                         Layout.preferredHeight: 40
-                        placeholderText: "*.txt или *.bin"
+                        placeholderText: "txt / bin / hex / ..."
 
                         background: Rectangle {
                             radius: 8 // Sets corner radius
@@ -150,7 +187,7 @@ ApplicationWindow {
                     id: maskError
                     text: "Введите маску файлов"
                     color: errorColor
-                    font.pixelSize: 11
+                    font.pixelSize: 14
                     visible: false
                 }
 
@@ -186,7 +223,7 @@ ApplicationWindow {
 
                     Button {
                         text: "Обзор"
-                        onClicked: backend.selectOutputFolder()
+                        onClicked: outFolderDialog.open()
                         //Layout.fillHeight: true
                         Layout.preferredWidth: 100
                         Layout.preferredHeight: 40
@@ -195,12 +232,34 @@ ApplicationWindow {
                                         radius: 8 // Sets corner radius
                                     }
                     }
+
+                    FolderDialog {
+                        id: outFolderDialog
+                        title: qsTr("Выберите выходную папку")
+
+                        onAccepted: {
+                            var cleanPath = folderDialog.selectedFolder.toString();
+                            // Убираем префикс схемы, если он есть (а у меня он всегда есть)
+                            if (cleanPath.startsWith("file:///")) {
+                                // Для Windows (оставляем "C:/Folder") или Linux/macOS (оставляем "/home/user")
+                                cleanPath = cleanPath.substring(8);
+                            } else if (cleanPath.startsWith("file://")) {
+                                cleanPath = cleanPath.substring(7);
+                            }
+                            // Декодируем пробелы и спецсимволы (например, %20 обратно в пробел)
+                            outputField.text = decodeURIComponent(cleanPath);
+                        }
+
+                        onRejected: {
+                            console.log("Пользователь отменил выбор папки")
+                        }
+                    }
                 }
                 Text {
                     id: outputError
                     text: "Введите папку для сохранения файлов"
                     color: errorColor
-                    font.pixelSize: 11
+                    font.pixelSize: 14
                     visible: false
                 }
 
@@ -530,6 +589,34 @@ ApplicationWindow {
                             wrapMode: Text.WordWrap
                             visible: false
                             Layout.fillWidth: true
+                        }
+                    }
+                }
+
+                // -------- Лог консоль ----------
+                Rectangle {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    //Layout.preferredHeight: 80
+                    color: backgroundDarkColor
+                    radius: 8
+                    //border.color: mainColor
+                    //border.width: 1
+
+                    ScrollView {
+                        anchors.fill: parent
+                        anchors.margins: 10
+                        clip: true
+
+                        ColumnLayout {
+                            spacing: 2
+                            Text {
+                                text: modelData
+                                font.pixelSize: 11
+                                color: textSecondary
+                                wrapMode: Text.WordWrap
+                                Layout.fillWidth: true
+                            }
                         }
                     }
                 }
