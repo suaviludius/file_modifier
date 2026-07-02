@@ -7,7 +7,7 @@ import QtQuick.Dialogs
 ApplicationWindow {
     id: window
     width: 920
-    height: 520
+    height: 740
     visible: true
     title: qsTr("FIle XOR processor")
 
@@ -137,6 +137,8 @@ ApplicationWindow {
                             }
                             // Декодируем пробелы и спецсимволы (например, %20 обратно в пробел)
                             pathField.text = decodeURIComponent(cleanPath);
+
+                            checkPathExists(pathField.text, pathField, pathError)
                         }
 
                         onRejected: {
@@ -148,7 +150,7 @@ ApplicationWindow {
                     id: pathError
                     text: "Выберите папку для поиска файлов"
                     color: errorColor
-                    font.pixelSize: 14
+                    font.pixelSize: 12
                     visible: false
                     //Layout.leftMargin: 30
                 }
@@ -171,7 +173,7 @@ ApplicationWindow {
                         Layout.fillWidth: true
                         //Layout.fillHeight: true
                         Layout.preferredHeight: 40
-                        placeholderText: "txt / bin / hex / ..."
+                        placeholderText: "Например: txt, bin, hex, ..."
 
                         background: Rectangle {
                             radius: 8 // Sets corner radius
@@ -187,7 +189,7 @@ ApplicationWindow {
                     id: maskError
                     text: "Введите маску файлов"
                     color: errorColor
-                    font.pixelSize: 14
+                    font.pixelSize: 12
                     visible: false
                 }
 
@@ -259,7 +261,7 @@ ApplicationWindow {
                     id: outputError
                     text: "Введите папку для сохранения файлов"
                     color: errorColor
-                    font.pixelSize: 14
+                    font.pixelSize: 12
                     visible: false
                 }
 
@@ -290,13 +292,22 @@ ApplicationWindow {
                         }
 
                         onTextChanged: {
-                            if (text.length === 16) {
+                            // Регулярное выражение для HEX символов (0-9, A-F, a-f)
+                            var hexPattern = /^[0-9A-Fa-f]+$/
+
+                            if (text.length === 16 && hexPattern.test(text)) {
                                 xorError.visible = false
+                                xorError.text = ""
                             } else if (text.length > 0) {
-                                xorError.text = "Нужно ровно 16 HEX символов"
+                                if (text.length !== 16) {
+                                    xorError.text = "Нужно ровно 16 HEX символов (сейчас " + text.length + ")"
+                                } else if (!hexPattern.test(text)) {
+                                    // Находим первый недопустимый символ
+                                    xorError.text = "Обнаружены недопустимые символы (разрешены 0-9, A-F)"
+                                }
                                 xorError.visible = true
                             } else {
-                                xorError.text = "Введите XOR значение"
+                                xorError.text = "Введите XOR значение (16 HEX символов)"
                                 xorError.visible = true
                             }
                         }
@@ -304,7 +315,7 @@ ApplicationWindow {
                 }
                 Text {
                     id: xorError
-                    text: "Введите 16-символьное HEX значение"
+                    text: "Введите XOR значение (16 HEX символов)"
                     color: errorColor
                     font.pixelSize: 11
                     visible: false
@@ -338,7 +349,7 @@ ApplicationWindow {
 
                                     Rectangle {
                                        color: deleteCheckBox.checked ? mainColor : backgroundColor
-                                       visible: testCheckBox.checked
+                                       //visible: deleteCheckBox.checked
                                        width: parent.width / 1.5
                                        height: parent.height / 1.5
                                        x: parent.width / 2 - width / 2
@@ -363,7 +374,7 @@ ApplicationWindow {
 
                                     Rectangle {
                                        color: timerCheckBox.checked ?  mainColor : backgroundColor
-                                       visible: testCheckBox.checked
+                                       //visible: timerCheckBox.checked
                                        width: parent.width / 1.5
                                        height: parent.height / 1.5
                                        x: parent.width / 2 - width / 2
@@ -418,7 +429,7 @@ ApplicationWindow {
                         Layout.preferredWidth: 100
                         highlighted: true
 
-                        enabled: validateInputs()
+                        enabled: true // validateInputs()
 
                         // Дизайн текста
                         contentItem: Text {
@@ -460,7 +471,7 @@ ApplicationWindow {
                         Layout.fillWidth: true
                         Layout.preferredWidth: 100
 
-                        enabled: backend.isRunning()
+                        enabled: backend.isRunning
 
                         background: Rectangle {
                                         color: mainColor
@@ -468,7 +479,7 @@ ApplicationWindow {
                                     }
 
                         onClicked: {
-                            if (backend.isPaused()) {
+                            if (backend.isPaused) {
                                 backend.resume()
                                 pauseButton.text = "Пауза"
                             } else {
@@ -486,7 +497,7 @@ ApplicationWindow {
                         Layout.fillWidth: true
 
                         // Добавляем условия для активности кнопки
-                        enabled: backend.isRunning() || backend.isPaused()
+                        enabled: backend.isRunning || backend.isPaused
 
                         background: Rectangle {
                                         color: mainColor
@@ -494,7 +505,7 @@ ApplicationWindow {
                                     }
 
                         onClicked: {
-                            backend.stopProcessing()
+                            //backend.stopProcessing()
                             pauseButton.text = "Пауза"
                         }
                     }
@@ -519,7 +530,7 @@ ApplicationWindow {
 
                             Text {
                                 id: fileLabel
-                                text: "Ожидание начала..."
+                                text: backend.currentFile || "Ожидание начала ..."
                                 font.pixelSize: 12
                                 color: textColor
                                 Layout.fillWidth: true
@@ -528,7 +539,7 @@ ApplicationWindow {
 
                             Text {
                                 id: speedLabel
-                                text: "0 MB/s"
+                                text: backend.speed.toFixed(1) + " MB/s"
                                 font.pixelSize: 12
                                 color: textColor
                             }
@@ -539,23 +550,53 @@ ApplicationWindow {
                             Layout.fillWidth: true
                             from: 0
                             to: 100
-                            value: 0
+                            value: backend.progress
 
+                            // Кастомизация фона
                             background: Rectangle {
-                                        color: backgroundColor
-                                        radius: 4
-                                        height: 20
-                                        border.color: textColor
-                                    }
-
-                            contentItem: Text {
-                                text: Math.round(progressBar.value) + "%"
-                                color: mainColor
-                                font.pixelSize: 14
-                                font.bold: true
-                                horizontalAlignment: Text.AlignHCenter
-                                verticalAlignment: Text.AlignVCenter
+                                implicitWidth: 200
+                                implicitHeight: 20
+                                color: backgroundColor
+                                border.color: textColor
+                                radius: 8
                             }
+
+                            contentItem: Item {
+                                    implicitWidth: 200
+                                    implicitHeight: 20
+
+                                    Rectangle {
+                                        width: progressBar.visualPosition * parent.width
+                                        height: parent.height
+                                        color: mainColor // Цвет полосы прогресса (зеленый)
+                                        radius: 8
+                                    }
+                                    Text {
+                                        width: parent.width
+                                        text: Math.round(progressBar.value) + "%"
+                                        color: textColor
+                                        font.pixelSize: 14
+                                        font.bold: true
+                                        horizontalAlignment: Text.AlignHCenter
+                                        verticalAlignment: Text.AlignVCenter
+                                    }
+                                }
+
+                            // background: Rectangle {
+                            //             color: backgroundColor
+                            //             radius: 4
+                            //             height: 25
+                            //             border.color: textColor
+                            //         }
+
+                            // contentItem: Text {
+                            //     text: Math.round(progressBar.value) + "%"
+                            //     color: mainColor
+                            //     font.pixelSize: 14
+                            //     font.bold: true
+                            //     horizontalAlignment: Text.AlignHCenter
+                            //     verticalAlignment: Text.AlignVCenter
+                            // }
                         }
 
 
@@ -581,15 +622,15 @@ ApplicationWindow {
                         // }
 
                         // Сообщение об ошибке валидации (всплывающее)
-                        Text {
-                            id: validationMessage
-                            text: ""
-                            color: errorColor
-                            font.pixelSize: 12
-                            wrapMode: Text.WordWrap
-                            visible: false
-                            Layout.fillWidth: true
-                        }
+                        // Text {
+                        //     id: validationMessage
+                        //     text: ""
+                        //     color: errorColor
+                        //     font.pixelSize: 12
+                        //     wrapMode: Text.WordWrap
+                        //     visible: false
+                        //     Layout.fillWidth: true
+                        // }
                     }
                 }
 
@@ -610,12 +651,17 @@ ApplicationWindow {
 
                         ColumnLayout {
                             spacing: 2
-                            Text {
-                                text: modelData
-                                font.pixelSize: 11
-                                color: textSecondary
-                                wrapMode: Text.WordWrap
-                                Layout.fillWidth: true
+
+                            Repeater {
+                                model: backend.logMessages
+
+                                Text {
+                                    text: modelData
+                                    font.pixelSize: 14
+                                    color: textColor
+                                    wrapMode: Text.WordWrap
+                                    Layout.fillWidth: true
+                                }
                             }
                         }
                     }
@@ -641,4 +687,70 @@ ApplicationWindow {
 
         }
     }
+
+    // Функция валидации всех полей
+    function validateInputs() {
+        var valid = true
+        //var errors = []
+
+        // Проверка пути
+        if (pathField.text === "") {
+            pathError.visible = true
+            pathError.text = "Путь поиска не указан"
+            valid = false
+        } else if(!backend.checkPathExists(pathField.text)){
+            pathError.text = "Путь поиска не существует"
+            pathError.visible = true
+            valid = false
+        }
+
+        // Проверка маски
+        if (maskField.text === "") {
+            maskError.visible = true
+            //errors.push("Маска файлов не указана")
+            valid = false
+        }
+
+        // Проверка пути сохранения
+        if (outputField.text === "") {
+            outputError.visible = true
+            outputError.text = "Путь сохранения не указан"
+            valid = false
+        } else if(!backend.checkPathExists(outputField.text)){
+            outputError.text = "Путь сохранения не существует"
+            outputError.visible = true
+            valid = false
+        }
+
+        // Проверка XOR значения
+        if (xorField.text.length !== 16) {
+            xorError.visible = true
+            //errors.push("XOR значение должно быть 16 HEX символов")
+            valid = false
+        }
+
+        // Показываем общую ошибку
+        // if (!valid) {
+        //     validationMessage.text = errors.join("; ")
+        //     validationMessage.visible = true
+        //     // Скрываем через 3 секунд
+        //     hideValidationTimer.restart()
+        // } else {
+        //     validationMessage.visible = false
+        // }
+        return valid
+    }
+
+    // Таймер для скрытия сообщения
+    // Timer {
+    //     id: hideValidationTimer
+    //     interval: 3000
+    //     running: false
+    //     repeat: false
+    //     onTriggered: {
+    //         validationMessage.visible = false
+    //     }
+    // }
 }
+
+
