@@ -5,8 +5,8 @@ import QtQuick.Controls.Basic
 
 ApplicationWindow {
     id: window
-    width: 860
-    height: 420
+    width: 920
+    height: 520
     visible: true
     title: qsTr("FIle XOR processor")
 
@@ -23,14 +23,15 @@ ApplicationWindow {
 
     ColumnLayout {
         anchors.fill: parent
-        spacing: 5
-        Layout.alignment: Qt.AlignTop
+        //anchors.margins: 10
+        //spacing: 10
+        //Layout.alignment: Qt.AlignTop
 
         // Заголовок
         Rectangle {
             Layout.fillWidth: true
-            Layout.preferredHeight: 50
-            Layout.alignment: Qt.AlignTop
+            Layout.preferredHeight: 40
+            //Layout.alignment: Qt.AlignTop
             color: mainDarkColor
 
             Text {
@@ -46,8 +47,8 @@ ApplicationWindow {
         Rectangle {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            //Layout.preferredHeight: 400
-            Layout.alignment: Qt.AlignTop
+            //Layout.preferredHeight: 300
+            //Layout.alignment: Qt.AlignTop
             color: backgroundColor
 
             ColumnLayout {
@@ -58,7 +59,6 @@ ApplicationWindow {
                 // -------- Путь для поиска файлов -------------
                 RowLayout {
                     Layout.fillWidth: true
-                    Layout.preferredHeight: 15
                     spacing: 10
 
                     Label {
@@ -73,11 +73,12 @@ ApplicationWindow {
                     TextField {
                         id: pathField
                         Layout.fillWidth: true
-                        Layout.fillHeight: true
+                        //Layout.fillHeight: true
+                        Layout.preferredHeight: 40
                         placeholderText: "Путь к файлу"
 
                         background: Rectangle {
-                            radius: 10 // Sets corner radius
+                            radius: 8 // Sets corner radius
                             color: backgroundDarkColor
                         }
 
@@ -93,13 +94,14 @@ ApplicationWindow {
 
                     Button {
                         text: "Обзор"
-                        Layout.fillHeight: true
+                        //Layout.fillHeight: true
                         Layout.preferredWidth: 100
+                        Layout.preferredHeight: 40
                         background: Rectangle {
                                         //implicitWidth: 100
                                         //implicitHeight: 40
                                         color: mainColor
-                                        radius: 10 // Sets corner radius
+                                        radius: 8 // Sets corner radius
                                     }
 
                         onClicked: backend.selectFolder()
@@ -117,25 +119,25 @@ ApplicationWindow {
                 // ---------- Маска файлов ----------
                 RowLayout {
                     Layout.fillWidth: true
-                    Layout.preferredHeight: 15
                     spacing: 10
 
                     Label {
                         text:  "Маска файлов:\t"
                         font.bold: true
                         font.pixelSize: 14
-                        //Layout.preferredWidth: 120
+                        //Layout.preferredHeight: 40
                         //color: maskField.text === "" ? errorColor : textColor
                     }
 
                     TextField {
                         id: maskField
                         Layout.fillWidth: true
-                        Layout.fillHeight: true
+                        //Layout.fillHeight: true
+                        Layout.preferredHeight: 40
                         placeholderText: "*.txt или *.bin"
 
                         background: Rectangle {
-                            radius: 10 // Sets corner radius
+                            radius: 8 // Sets corner radius
                             color: backgroundDarkColor
                         }
 
@@ -155,7 +157,6 @@ ApplicationWindow {
                 // ---------- Путь для сохранения ------------
                 RowLayout {
                     Layout.fillWidth: true
-                    Layout.preferredHeight: 15
                     spacing: 10
 
                     Label {
@@ -169,11 +170,12 @@ ApplicationWindow {
                     TextField {
                         id: outputField
                         Layout.fillWidth: true
-                        Layout.fillHeight: true
+                        //Layout.fillHeight: true
+                        Layout.preferredHeight: 40
                         placeholderText: "Папка для сохранения"
 
                         background: Rectangle {
-                            radius: 10 // Sets corner radius
+                            radius: 8 // Sets corner radius
                             color: backgroundDarkColor
                         }
 
@@ -185,11 +187,12 @@ ApplicationWindow {
                     Button {
                         text: "Обзор"
                         onClicked: backend.selectOutputFolder()
-                        Layout.fillHeight: true
+                        //Layout.fillHeight: true
                         Layout.preferredWidth: 100
+                        Layout.preferredHeight: 40
                         background: Rectangle {
                                         color: mainColor
-                                        radius: 10 // Sets corner radius
+                                        radius: 8 // Sets corner radius
                                     }
                     }
                 }
@@ -204,7 +207,6 @@ ApplicationWindow {
                 // ----------- XOR значение -------------
                 RowLayout {
                     Layout.fillWidth: true
-                    Layout.preferredHeight: 15
                     spacing: 10
 
                     Label {
@@ -218,12 +220,13 @@ ApplicationWindow {
                     TextField {
                         id: xorField
                         Layout.fillWidth: true
-                        Layout.fillHeight: true
+                        //Layout.fillHeight: true
+                        Layout.preferredHeight: 40
                         placeholderText: "16 символов HEX, например, 1234567890ABCDEF"
                         //validator: RegExpValidator { свалидировать как-то }
 
                         background: Rectangle {
-                            radius: 10 // Sets corner radius
+                            radius: 8 // Sets corner radius
                             color: backgroundDarkColor
                         }
 
@@ -313,6 +316,7 @@ ApplicationWindow {
                     Item{ Layout.fillWidth: true }
                     // Интервал для периода
                     RowLayout {
+                        // TODO: что лучше оставить enable ~ visible: ?
                         visible: timerCheckBox.checked
                         spacing: 20
 
@@ -344,7 +348,7 @@ ApplicationWindow {
                     Layout.fillWidth: true
                     //Layout.fillHeight: true
                     Layout.preferredHeight: 20
-                    spacing: 15
+                    spacing: 10
 
                     // TODO: Вынести дизайн кнопки в отдельный ui
                     Button {
@@ -440,16 +444,16 @@ ApplicationWindow {
                 // ----------- Секция прогресса -----------
                 Rectangle {
                     Layout.fillWidth: true
-                    Layout.preferredHeight: 100
-                    color: cardColor
+                    Layout.preferredHeight: 80
+                    color: "transparent"
                     radius: 8
-                    border.color: mainDarkColor
-                    border.width: 3
+                    //border.color: mainDarkColor
+                    //border.width: 3
 
                     ColumnLayout {
                         anchors.fill: parent
-                        anchors.margins: 15
-                        spacing: 10
+                        //anchors.margins: 20
+                        spacing: 0
 
                         RowLayout {
                             Layout.fillWidth: true
@@ -458,7 +462,7 @@ ApplicationWindow {
                                 id: fileLabel
                                 text: "Ожидание начала..."
                                 font.pixelSize: 12
-                                //color: textColor
+                                color: textColor
                                 Layout.fillWidth: true
                                 //elide: Text.ElideMiddle
                             }
@@ -467,7 +471,7 @@ ApplicationWindow {
                                 id: speedLabel
                                 text: "0 MB/s"
                                 font.pixelSize: 12
-                                //color: textColor
+                                color: textColor
                             }
                         }
 
@@ -481,32 +485,41 @@ ApplicationWindow {
                             background: Rectangle {
                                         color: backgroundColor
                                         radius: 4
-                                        height: 15
+                                        height: 20
                                         border.color: textColor
                                     }
-                        }
 
-
-                        RowLayout {
-                            Layout.fillWidth: true
-                            Layout.alignment: Qt.AlignLeft
-
-                            Text {
-                                id: progressLabel
-                                text: "0%"
+                            contentItem: Text {
+                                text: Math.round(progressBar.value) + "%"
+                                color: mainColor
                                 font.pixelSize: 14
                                 font.bold: true
-                                color: mainDarkColor
-                                //Layout.fillWidth: true
+                                horizontalAlignment: Text.AlignHCenter
+                                verticalAlignment: Text.AlignVCenter
                             }
-
-                            // Text {
-                            //     id: statusLabel
-                            //     text: "Готов к работе"
-                            //     //color: textColor
-                            //     //Layout.alignment: Qt.AlignRight
-                            // }
                         }
+
+
+                        // RowLayout {
+                        //     Layout.fillWidth: true
+                        //     Layout.alignment: Qt.AlignLeft
+
+                        //     Text {
+                        //         id: progressLabel
+                        //         text: "0%"
+                        //         font.pixelSize: 14
+                        //         font.bold: true
+                        //         color: mainDarkColor
+                        //         //Layout.fillWidth: true
+                        //     }
+
+                        //     Text {
+                        //         id: statusLabel
+                        //         text: "Готов к работе"
+                        //         //color: textColor
+                        //         //Layout.alignment: Qt.AlignRight
+                        //     }
+                        // }
 
                         // Сообщение об ошибке валидации (всплывающее)
                         Text {
@@ -520,7 +533,6 @@ ApplicationWindow {
                         }
                     }
                 }
-
 
             }
 
