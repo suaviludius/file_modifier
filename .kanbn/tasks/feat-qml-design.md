@@ -1,10 +1,11 @@
 ---
 created: 2026-07-01T21:03:46.403Z
-updated: 2026-07-01T21:16:21.597Z
+updated: 2026-07-02T15:39:31.291Z
 assigned: ""
-progress: 0.8
+progress: 1
 tags: []
 started: 2026-07-02T00:00:00.000Z
+completed: 2026-07-02T15:39:31.291Z
 ---
 
 # [FEAT] QML design
@@ -16,7 +17,8 @@ started: 2026-07-02T00:00:00.000Z
 - [x] TextField: входной файл, маска файлов, выходной файл, XOR значение
 - [x] CheckBox: Начать, Пауза, Стоп
 - [x] ProgressBar: строка прогресса
-- [ ] ScrollView: логи
+- [x] ScrollView: логи
+- [x] DialogBox: выбор путей к папкам
 
 ## Comments
 
