@@ -450,7 +450,8 @@ ApplicationWindow {
 
                         // По нажатию передаем конфигурацию в бекенд
                         onClicked: {
-                            if (validateInputs()) {
+                            // TODO: Стоит ли валидировать статус работы или выводить как сейчас, отдельным условием?
+                            if (validateInputs() && !backend.isRunning) {
                                 backend.startProcessing(
                                     pathField.text,
                                     maskField.text,
@@ -505,7 +506,7 @@ ApplicationWindow {
                                     }
 
                         onClicked: {
-                            //backend.stopProcessing()
+                            backend.stopProcessing()
                             pauseButton.text = "Пауза"
                         }
                     }
@@ -534,6 +535,7 @@ ApplicationWindow {
                                 font.pixelSize: 12
                                 color: textColor
                                 Layout.fillWidth: true
+                                // Сокращение текста, если не влезает
                                 //elide: Text.ElideMiddle
                             }
 
@@ -568,7 +570,7 @@ ApplicationWindow {
                                     Rectangle {
                                         width: progressBar.visualPosition * parent.width
                                         height: parent.height
-                                        color: mainColor // Цвет полосы прогресса (зеленый)
+                                        color: mainColor // Цвет полосы прогресса
                                         radius: 8
                                     }
                                     Text {

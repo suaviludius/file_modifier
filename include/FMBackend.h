@@ -82,9 +82,9 @@ private slots:
     void onTimerScan();
 
 private:
-    std::atomic<bool> m_running;
-    std::atomic<bool> m_paused;
-    std::atomic<bool> m_stopRequested;
+    std::atomic<bool> m_running = false;
+    std::atomic<bool> m_paused = false;
+    std::atomic<bool> m_stopRequested = false;
 
     // Очередь in файлов найденых по маске
     std::queue<QString> m_fileQueue;

@@ -55,26 +55,40 @@ void FMBackend::startProcessing(
     addLog("Маска: " + mask);
     addLog("Сохранение в: " + outputPath);
 
-    m_running = true;
-    m_paused = false;
-    m_stopRequested = false;
-
     // Если таймер включен
     if (m_config->useTimer) {
         m_timer->start(m_config->intervalSec * 1000);
         addLog("Режим таймера (интервал: " + QString::number(m_config->intervalSec) + "с )");
     }
 
+    // Статус
+    m_running = true;
+    m_paused = false;
+    m_stopRequested = false;
     emit statusChanged();
+
+    // Прогресс
+    m_currentProgress = 0;
+    m_currentSpeed = 0;
+    m_currentFile = "";
+    emit progressChanged();
 
     // Начало обработки
     onTimerScan();
 }
 
 void FMBackend::stopProcessing() {
-    m_stopRequested = true;
+    // Статус
     m_running = false;
     m_paused = false;
+    m_stopRequested = true;
+    emit statusChanged();
+
+    // Прогресс
+    m_currentSpeed = 0;
+    m_currentFile = "";
+    emit progressChanged();
+
     m_timer->stop();
 
     // Очищаем очередь
@@ -85,7 +99,6 @@ void FMBackend::stopProcessing() {
 
     addLog("Обработка остановлена");
     // TODO: придумать как фиксировать статус в qml
-    emit statusChanged();
 }
 
 
@@ -155,6 +168,7 @@ void FMBackend::processQueue() {
         // m_currentSpeed = 10;
         // m_currentFile = QString::fromStdString(filePath);
         // emit progressChanged();
+
         for (int i = 3; i <= 100; i += 1) {
             if (m_paused || m_stopRequested) break;
             m_currentProgress = i;
