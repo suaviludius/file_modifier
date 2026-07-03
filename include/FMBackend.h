@@ -8,26 +8,6 @@
 #include <atomic>
 #include <queue>
 
-// Структуа конфигурации с фронта
-struct Config {
-    QString path;
-    QString mask;
-    QString outputPath;
-    QString xorValue;
-    bool deleteOriginal = false;
-    bool useTimer = false;
-    int intervalSec = 0;
-};
-
-// Рабоиче состояния
-enum class Status{
-    READY,
-    RUNNING,
-    PAUSE,
-    STOPPED,
-    ERROR
-};
-
 // Главный класс, соединяющий qml и бекенд
 class FMBackend : public QObject {
     Q_OBJECT
@@ -38,6 +18,26 @@ class FMBackend : public QObject {
     Q_PROPERTY(double speed READ speed NOTIFY progressChanged)
     Q_PROPERTY(QString currentFile READ currentFile NOTIFY progressChanged)
 public:
+    // Структуа конфигурации с фронта
+    struct Config {
+        QString path;
+        QString mask;
+        QString outputPath;
+        QString xorValue;
+        bool deleteOriginal = false;
+        bool useTimer = false;
+        int intervalSec = 0;
+    };
+
+    // Рабоиче состояния
+    enum class Status{
+        READY,
+        RUNNING,
+        PAUSE,
+        STOPPED,
+        ERROR
+    };
+
     explicit FMBackend(QObject* parent = nullptr);
     ~FMBackend() override;
 

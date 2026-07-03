@@ -1,4 +1,5 @@
 #include "FMBackend.h"
+#include "FileProcessor.h"
 
 #include <QFile>
 #include <QFileInfo>
@@ -54,6 +55,8 @@ void FMBackend::startProcessing(
     addLog("Поиск в: " + path);
     addLog("Маска: " + mask);
     addLog("Сохранение в: " + outputPath);
+
+    // Решить конфликт имен для выходных файлов
 
     // Если таймер включен
     if (m_config->useTimer) {
@@ -160,25 +163,34 @@ void FMBackend::processQueue() {
             m_fileQueue.pop();
         }
 
+        quint64 xorValue = m_config->xorValue.toULongLong(nullptr, 16);
+
+        FileProcessor* processor = new FileProcessor(
+            filePath,
+            "outputPath",
+            xorValue,
+            m_config->deleteOriginal,
+            std::ref(m_paused),
+            std::ref(m_stopRequested)
+        );
+
+        processor->run();
+
         // Обработка файла
         // здесь будет код обработки файла с XOR
 
-        // Пока что имитация прогресса для демонстрации
-        // m_currentProgress = 100;
-        // m_currentSpeed = 10;
-        // m_currentFile = QString::fromStdString(filePath);
-        // emit progressChanged();
-
-        for (int i = 3; i <= 100; i += 1) {
-            if (m_paused || m_stopRequested) break;
-            m_currentProgress = i;
-            m_currentSpeed =  (i / 100.0) * 50;
-            m_currentFile = QString::fromStdString(filePath);
-            emit progressChanged();
-        }
+        // for (int i = 3; i <= 100; i += 1) {
+        //     if (m_paused || m_stopRequested) break;
+        //     m_currentProgress = i;
+        //     m_currentSpeed =  (i / 100.0) * 50;
+        //     m_currentFile = QString::fromStdString(filePath);
+        //     emit progressChanged();
+        // }
 
         addLog("Обработан: " + QString::fromStdString(filePath));
     }
+
+    stopProcessing();
 }
 
 void FMBackend::addLog(const QString& msg) {
