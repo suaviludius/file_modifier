@@ -26,6 +26,7 @@ public:
         QString xorValue;
         bool deleteOriginal = false;
         bool useTimer = false;
+        bool overwrite = false;
         int intervalSec = 0;
     };
 
@@ -62,6 +63,7 @@ public slots:
         const QString& xorValue,
         bool deleteOriginal,
         bool useTimer,
+        //bool overwrite, // 1 - overwrite, 2 - rename
         int intervalSec
     );
     void stopProcessing();
@@ -80,6 +82,13 @@ signals:
 private slots:
     // Поиск файлов в дирректории по маске
     void onTimerScan();
+    // Приемникики сигналов с процессора
+    // Прогресс от обрабатываемого файла
+    void onFileProcessorProgress(const QString& file, int bytes);
+    // Сообщения об ошибке
+    void onFileProcessorError(const QString& file, const QString& error);
+    // Сообщения об ошибке
+    void onFileProcessorFinished(const QString& file, bool success);
 
 private:
     std::atomic<bool> m_running = false;
@@ -100,6 +109,12 @@ private:
     // Прогресс обработки
     int m_currentProgress = 0;
     double m_currentSpeed = 0.0;
+    uint64_t m_processedBytes = 0;
+    uint64_t m_totalBytes = 0;
+
+    // Количество обработанных файлов
+    size_t m_totalFiles;
+    size_t m_processedCount;
 
     // Список с логами
     QStringList m_logMessages;
@@ -108,8 +123,10 @@ private:
 
     // Добавление лог сообщений
     void addLog(const QString& msg);
-    // Обработка очереди
-    void processQueue();
+    // Обработка файла
+    void processFile(const QString& fileName);
+    // Разрешение конфликта имен
+    QString resolveNamingConflict(const QString& outputPath, const QString& fileName);
 
 };
 

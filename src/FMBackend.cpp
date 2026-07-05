@@ -34,6 +34,7 @@ void FMBackend::startProcessing(
     const QString& xorValue,
     bool deleteOriginal,
     bool useTimer,
+    //bool overwrite,
     int intervalSec) {
 
     // Сохраняем конфигурацию
@@ -43,12 +44,8 @@ void FMBackend::startProcessing(
     m_config->xorValue = xorValue;
     m_config->deleteOriginal = deleteOriginal;
     m_config->useTimer = useTimer;
+    //m_config->overwrite = overwrite;
     m_config->intervalSec = intervalSec;
-
-    // Валидация (уже проводится в qml)
-    // if (!validateConfig(m_config)) {
-    //     return;
-    // }
 
     // ВЫводим сообщения в скрол консоль приложения
     addLog("Запуск обработки...");
@@ -95,19 +92,17 @@ void FMBackend::stopProcessing() {
     m_timer->stop();
 
     // Очищаем очередь
-    // TODO: заблокировать мьютекс!
     while (!m_fileQueue.empty()) {
         m_fileQueue.pop();
     }
 
     addLog("Обработка остановлена");
-    // TODO: придумать как фиксировать статус в qml
 }
 
 
 void FMBackend::resume(){
     if(m_running && m_paused){
-        addLog("Обработка приостановлена");
+        addLog("Обработка возобновлена");
         m_paused = false;
         emit statusChanged();
     }
@@ -115,7 +110,7 @@ void FMBackend::resume(){
 
 void FMBackend::pause(){
     if(m_running && !m_paused){
-        addLog("Обработка возобновлена");
+        addLog("Обработка приостановлена");
         m_paused = true;
         emit statusChanged();
     }
@@ -126,71 +121,129 @@ void FMBackend::onTimerScan() {
     if (!m_running || m_paused) return;
 
     QDir dir(m_config->path);
-    QStringList filters;
-    filters << m_config->mask;
-
-    QStringList files = dir.entryList(filters, QDir::Files);
+    QStringList filters { m_config->mask };
+    // файлы с метаданными
+    QFileInfoList  files = dir.entryInfoList(filters, QDir::Files);
 
     if (files.isEmpty()) {
         addLog("Файлы не найдены по маске: " + m_config->mask);
         return;
     }
 
-    addLog("Найдено файлов: " + QString::number(files.size()));
+    m_totalFiles = files.size();
+    m_processedCount = 0;
+    m_totalBytes = 0;
 
-    for (const QString& file : files) {
-        if (m_stopRequested) {
-            break;
-        }
-        // TODO: заблокировать мьютекс!
-        m_fileQueue.push(file);
+    for (const QFileInfo& fileInfo : files) {
+        m_totalBytes += fileInfo.size();
+        m_fileQueue.push(fileInfo.absoluteFilePath());
     }
 
-    processQueue();
+    addLog("Найдено файлов: " + QString::number(m_totalFiles));
+    addLog("Общий размер файлов: " + QString::number(m_totalBytes) + " байт");
+
+    // for (const QFileInfo& file : files) {
+    //     QString filePath = file.absoluteFilePath();
+    //     if (m_stopRequested.load(std::memory_order_acquire)) {
+    //         break;
+    //     }
+    processFile(m_fileQueue.front());
+    m_fileQueue.pop();
+    //}
 }
 
-void FMBackend::processQueue() {
+void FMBackend::processFile(const QString& inputPath) {
     if (m_paused || m_stopRequested || !m_running) return;
 
-    // Запускаем обработку в отдельном потоке
-    while (!m_fileQueue.empty()) {
-        if (m_paused || m_stopRequested || !m_running) break;
+    QString filePath = inputPath;
+    QFileInfo fileInfo(filePath);
+    QString fileName = fileInfo.fileName();
+    QString outputPath = resolveNamingConflict(m_config->outputPath, fileName);
 
-        std::string filePath;
-        {
-            if (m_fileQueue.empty()) break;
-            filePath = m_fileQueue.front().toStdString();
-            m_fileQueue.pop();
-        }
+    quint64 xorValue = m_config->xorValue.toULongLong(nullptr, 16);
 
-        quint64 xorValue = m_config->xorValue.toULongLong(nullptr, 16);
+    FileProcessor* processor = new FileProcessor(
+        inputPath,
+        outputPath,
+        xorValue,
+        m_config->deleteOriginal,
+        m_paused,
+        m_stopRequested
+    );
 
-        FileProcessor* processor = new FileProcessor(
-            filePath,
-            "outputPath",
-            xorValue,
-            m_config->deleteOriginal,
-            std::ref(m_paused),
-            std::ref(m_stopRequested)
-        );
+    connect(processor, &FileProcessor::progressUpdated, this, &FMBackend::onFileProcessorProgress);
+    connect(processor, &FileProcessor::finished, this, &FMBackend::onFileProcessorFinished);
+    connect(processor, &FileProcessor::sendError, this, &FMBackend::onFileProcessorError);
 
-        processor->run();
+    // Обработка файла
+    processor->run();
 
-        // Обработка файла
-        // здесь будет код обработки файла с XOR
+    //addLog("Обработан: " + QString::fromStdString(filePath));
+}
 
-        // for (int i = 3; i <= 100; i += 1) {
-        //     if (m_paused || m_stopRequested) break;
-        //     m_currentProgress = i;
-        //     m_currentSpeed =  (i / 100.0) * 50;
-        //     m_currentFile = QString::fromStdString(filePath);
-        //     emit progressChanged();
-        // }
+void FMBackend::onFileProcessorFinished(const QString& inputPath, bool success) {
+    // Получаем указатель на процессор, который отправил сигнал
+    FileProcessor* processor = qobject_cast<FileProcessor*>(sender());
 
-        addLog("Обработан: " + QString::fromStdString(filePath));
+    m_processedCount++;
+
+    if (success) {
+        addLog(inputPath + ": Обработка успешно завершена");
+    } else {
+        addLog(inputPath + ": Обработка прервана");
     }
 
-    stopProcessing();
+    // Удаляем объект процессора, чтобы не было утечки памяти
+    if (processor) {
+        processor->deleteLater();
+    }
+
+    // Проверяем, все ли файлы обработаны
+    if (m_processedCount >= m_totalFiles) {
+        addLog("Все файлы обработаны");
+        stopProcessing();
+    }
+}
+
+void FMBackend::onFileProcessorError(const QString& inputPath, const QString& error) {
+    addLog(inputPath + ": " + error);
+}
+
+void FMBackend::onFileProcessorProgress(const QString& file, int bytesCount) {
+    // Обновляем UI
+    m_processedBytes += bytesCount;
+    int percent = static_cast<int>((m_processedBytes * 100) / m_totalBytes);
+
+    if(percent > m_currentProgress){
+        m_currentProgress = percent;
+        m_currentSpeed = 0;
+        m_currentFile = file;
+        emit progressChanged();
+    }
+}
+
+QString FMBackend::resolveNamingConflict(const QString& outputPath, const QString& fileName) {
+    QString resultPath = outputPath;
+
+    if (QFile::exists(resultPath)) {
+        if (m_config->overwrite) {
+            QFile::remove(resultPath);
+        }
+        else {
+            QFileInfo info(resultPath);
+            QString baseName = info.baseName();
+            QString suffix = info.suffix();
+            QString dirPath = info.path();
+            int counter = 1;
+
+            while (QFile::exists(resultPath)) {
+                resultPath = dirPath + "/" + baseName + "_" + QString::number(counter) + "." + suffix;
+                counter++;
+            }
+        }
+    }
+
+    return resultPath;
 }
 
 void FMBackend::addLog(const QString& msg) {
