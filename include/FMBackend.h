@@ -26,7 +26,7 @@ public:
         QString xorValue;
         bool deleteOriginal = false;
         bool useTimer = false;
-        bool overwrite = false;
+        bool overwrite = true;
         int intervalSec = 0;
     };
 

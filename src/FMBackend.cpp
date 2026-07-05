@@ -15,6 +15,7 @@ FMBackend::FMBackend(QObject* parent)
 }
 
 FMBackend::~FMBackend() {
+    m_timer->stop();
     stopProcessing();
 }
 
@@ -87,7 +88,7 @@ void FMBackend::stopProcessing() {
     m_currentFile = "";
     emit progressChanged();
 
-    m_timer->stop();
+    //m_timer->stop();
 
     // Очищаем очередь
     while (!m_fileQueue.empty()) {
@@ -193,7 +194,16 @@ void FMBackend::onFileProcessorFinished(const QString& inputPath, bool success) 
     // Проверяем, все ли файлы обработаны
     if (m_processedCount >= m_totalFiles || m_fileQueue.empty()) {
         addLog("Все файлы обработаны");
-        stopProcessing();
+
+        // Сбрасываем прогресс
+        m_currentSpeed = 0;
+        m_currentFile = "";
+        emit progressChanged();
+
+        if (!m_config->useTimer) {
+            stopProcessing();
+        }
+
     } else {
         processFile(m_fileQueue.front());
     }
