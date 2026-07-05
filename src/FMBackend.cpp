@@ -53,8 +53,6 @@ void FMBackend::startProcessing(
     addLog("Маска: " + mask);
     addLog("Сохранение в: " + outputPath);
 
-    // Решить конфликт имен для выходных файлов
-
     // Если таймер включен
     if (m_config->useTimer) {
         m_timer->start(m_config->intervalSec * 1000);
@@ -142,14 +140,7 @@ void FMBackend::onTimerScan() {
     addLog("Найдено файлов: " + QString::number(m_totalFiles));
     addLog("Общий размер файлов: " + QString::number(m_totalBytes) + " байт");
 
-    // for (const QFileInfo& file : files) {
-    //     QString filePath = file.absoluteFilePath();
-    //     if (m_stopRequested.load(std::memory_order_acquire)) {
-    //         break;
-    //     }
     processFile(m_fileQueue.front());
-    m_fileQueue.pop();
-    //}
 }
 
 void FMBackend::processFile(const QString& inputPath) {
@@ -177,8 +168,6 @@ void FMBackend::processFile(const QString& inputPath) {
 
     // Обработка файла
     processor->run();
-
-    //addLog("Обработан: " + QString::fromStdString(filePath));
 }
 
 void FMBackend::onFileProcessorFinished(const QString& inputPath, bool success) {
@@ -198,10 +187,14 @@ void FMBackend::onFileProcessorFinished(const QString& inputPath, bool success) 
         processor->deleteLater();
     }
 
+    m_fileQueue.pop();
+
     // Проверяем, все ли файлы обработаны
-    if (m_processedCount >= m_totalFiles) {
+    if (m_processedCount >= m_totalFiles || m_fileQueue.empty()) {
         addLog("Все файлы обработаны");
         stopProcessing();
+    } else {
+        processFile(m_fileQueue.front());
     }
 }
 
@@ -223,7 +216,8 @@ void FMBackend::onFileProcessorProgress(const QString& file, int bytesCount) {
 }
 
 QString FMBackend::resolveNamingConflict(const QString& outputPath, const QString& fileName) {
-    QString resultPath = outputPath;
+    // Проверяем существование файла внутри папки
+    QString resultPath = QDir(outputPath).filePath(fileName);
 
     if (QFile::exists(resultPath)) {
         if (m_config->overwrite) {
