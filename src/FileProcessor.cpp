@@ -201,6 +201,8 @@ void FileProcessor::run(){
 
             case State::ERROR:
                 if(!m_error.isEmpty()) sendError(m_qinputPath, m_error);
+                // Если выходим в ошибку, то на прогрессе это не должно отразиться
+                emit progressUpdated(m_qinputPath, totalSize - bytesRead);
                 emit finished(m_qinputPath, false);
                 currentState = State::FINISHED;
                 break;
