@@ -131,6 +131,7 @@ void FMBackend::onTimerScan() {
     m_totalFiles = files.size();
     m_processedCount = 0;
     m_totalBytes = 0;
+    m_processedBytes = 0;
 
     for (const QFileInfo& fileInfo : files) {
         m_totalBytes += fileInfo.size();
@@ -206,6 +207,8 @@ void FMBackend::onFileProcessorProgress(const QString& file, int bytesCount) {
     // Обновляем UI
     m_processedBytes += bytesCount;
     int percent = static_cast<int>((m_processedBytes * 100) / m_totalBytes);
+
+    addLog(m_currentFile + " процент: " + QString::number(percent));
 
     if(percent > m_currentProgress){
         m_currentProgress = percent;
