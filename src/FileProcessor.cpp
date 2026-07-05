@@ -2,19 +2,21 @@
 
 #include <chrono>
 #include <filesystem>
+#include <algorithm>
 #include <fstream>
 #include <thread>
 
 FileProcessor::FileProcessor(
-        const std::string& inputPath,
-        const std::string& outputPath,
+        const QString& inputPath,
+        const QString& outputPath,
         uint64_t xorValue,
         bool deleteOriginal,
         std::atomic<bool>& paused,
         std::atomic<bool>& stopped,
         QObject *parent
-    ) : m_inputPath {inputPath},
-        m_outputPath {outputPath},
+    ) : m_qinputPath {inputPath},
+        m_inputPath {inputPath.toStdString()},
+        m_outputPath {outputPath.toStdString()},
         m_xorValue {xorValue},
         m_deleteOriginal {deleteOriginal},
         m_paused {paused},
@@ -32,11 +34,13 @@ void FileProcessor::run(){
         PAUSED,
         STOPPING,
         COMPLETED,
-        ERROR
+        ERROR,
+        FINISHED
     };
 
-    std::vector<uint8_t> buffer;
+    std::vector<char> buffer;
     uint64_t processedBytes = 0;
+    uint64_t bytesRead = 0;
     uint64_t totalSize = 0;
     std::chrono::steady_clock::time_point startTime;
     int currentPercent = 0; //static_cast<int>((processedBytes * 100) / totalSize);
@@ -46,7 +50,7 @@ void FileProcessor::run(){
 
     State currentState = IDLE;
 
-    while (currentState != State::COMPLETED && currentState != State::ERROR) {
+    while (currentState != State::FINISHED) {
 
         switch (currentState) {
 
@@ -108,9 +112,36 @@ void FileProcessor::run(){
                     break;
                 }
 
-                // Тут мы читаем чанк, ксорим, записываем и заново ...
+                // Чтение
+                bytesRead = readBlock(inputFile, buffer, totalSize, processedBytes);
 
-                currentState = State::COMPLETED;
+                if (bytesRead <= 0) {
+                    if (processedBytes == totalSize) {
+                        currentState = State::COMPLETED;
+                    } else {
+                        m_error = "Ошибка чтения файла";
+                        currentState = State::STOPPING;
+                    }
+                    break;
+                }
+
+                // Модификация
+                modifyBlock(buffer, bytesRead, m_xorValue);
+
+                // Запись
+                if (!writeBlock(outputFile, buffer, bytesRead)) {
+                    m_error = "Ошибка записи";
+                    currentState = State::ERROR;
+                    break;
+                }
+
+                // Обновляем прогресс
+                emit progressUpdated(m_qinputPath, bytesRead);
+
+                processedBytes += bytesRead;
+                if (processedBytes == totalSize) {
+                    currentState = State::COMPLETED;
+                }
                 break;
 
             case State::PAUSED:
@@ -126,13 +157,14 @@ void FileProcessor::run(){
                 if (currentState == State::PAUSED) {
                     currentState = State::PROCESSING;
                 }
+
                 break;
 
             case State::STOPPING:
                 inputFile.close();
                 outputFile.close();
 
-                if (processedBytes < totalSize) {
+                if (std::filesystem::exists(m_outputPath) && processedBytes < totalSize) {
                     // Оборачиваем в try-catch, так как файловая система может выдать исключение
                     // (например, если файл заблокирован другой программой)
                     try {
@@ -142,6 +174,7 @@ void FileProcessor::run(){
                     }
                 }
 
+                if(m_error.isEmpty()) m_error = "Остановка по требованию";
                 currentState = State::ERROR;
                 break;
 
@@ -149,23 +182,68 @@ void FileProcessor::run(){
                 inputFile.close();
                 outputFile.close();
 
-                //emit progressUpdated(100, m_inputPath, 0);
+                emit progressUpdated(m_qinputPath, 100);
 
                 if (m_deleteOriginal) {
                     std::error_code ec;
                     // Пытаемся удалить файл. Если будет ошибка, она запишется в ec
                     if (std::filesystem::remove(m_inputPath, ec)) {
-                        // statusUpdated("Исходный файл удалён");
+                        // Исходный файл удалён
                     } else {
-                        m_error = "Не удалось удалить исходный файл";
+                        sendError(m_qinputPath, "Не удалось удалить исходный файл");
                     }
                 }
+
+                emit finished(m_qinputPath, true);
+                currentState = State::FINISHED;
 
                 break;
 
             case State::ERROR:
-                //emit ... (m_error);
+                if(!m_error.isEmpty()) sendError(m_qinputPath, m_error);
+                emit finished(m_qinputPath, false);
+                currentState = State::FINISHED;
                 break;
+
+            default: break;
         }
     }
+}
+
+uint64_t FileProcessor::readBlock(std::ifstream& inputFile, std::vector<char>& buffer, uint64_t totalSize, uint64_t processedBytes) {
+    // Вычисляем, сколько байт нужно прочитать, чтобы не выйти за пределы totalSize
+    uint64_t bytesToRead = std::min(static_cast<uint64_t>(buffer.size()), totalSize - processedBytes);
+
+    if (bytesToRead <= 0) return 0;
+
+    inputFile.read(buffer.data(), bytesToRead);
+    // Возвращает количество реально прочитанных байт
+    return inputFile.gcount();
+}
+
+
+void  FileProcessor::modifyBlock(std::vector<char>& buffer, uint64_t bytesCount, uint64_t xorValue) {
+    char* data = buffer.data();
+    uint64_t i = 0;
+
+    // Обрабатываем блоки по 8 байт (64 бита)
+    for (; i <= bytesCount - 8; i += 8) {
+        uint64_t block;
+        std::memcpy(&block, data + i, 8);
+        block ^= xorValue;
+        std::memcpy(data + i, &block, 8);
+    }
+
+    // Обрабатываем оставшиеся байты (хвост < 8 байт)3
+    for (; i < bytesCount; ++i) {
+        uint64_t shift = (i % 8) * 8;
+        data[i] ^= static_cast<char>((xorValue >> shift) & 0xFF);
+    }
+}
+
+bool FileProcessor::writeBlock(std::ofstream& outputFile, const std::vector<char>& buffer, uint64_t bytesCount) {
+    if (bytesCount <= 0) return true;
+
+    outputFile.write(buffer.data(), bytesCount);
+    return static_cast<bool>(outputFile); // true, если поток в порядке (нет failbit/badbit)
 }
