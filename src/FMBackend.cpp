@@ -5,6 +5,7 @@
 #include <QFileInfo>
 #include <QDir>
 #include <QDebug>
+#include <QDateTime>
 
 
 FMBackend::FMBackend(QObject* parent)
@@ -216,11 +217,13 @@ void FMBackend::onFileProcessorError(const QString& inputPath, const QString& er
 void FMBackend::onFileProcessorProgress(const QString& file, int bytesCount) {
     // Обновляем UI
     m_processedBytes += bytesCount;
+
+    if (m_totalBytes == 0) return;
+
     int percent = static_cast<int>((m_processedBytes * 100) / m_totalBytes);
 
-    addLog(m_currentFile + " процент: " + QString::number(percent));
-
     if(percent > m_currentProgress){
+        //addLog(m_currentFile + " процент: " + QString::number(percent));
         m_currentProgress = percent;
         m_currentSpeed = 0;
         m_currentFile = file;
