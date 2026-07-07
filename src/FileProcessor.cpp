@@ -131,7 +131,7 @@ void FileProcessor::run(){
                 // Запись
                 if (!writeBlock(outputFile, buffer, bytesRead)) {
                     m_error = "Ошибка записи";
-                    currentState = State::ERROR;
+                    currentState = State::STOPPING;
                     break;
                 }
 
