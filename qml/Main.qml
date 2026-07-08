@@ -173,7 +173,7 @@ ApplicationWindow {
                         Layout.fillWidth: true
                         //Layout.fillHeight: true
                         Layout.preferredHeight: 40
-                        placeholderText: "Например: txt, bin, hex, ..."
+                        placeholderText: "Например: *.txt, *.bin, *.hex, ..."
 
                         background: Rectangle {
                             radius: 8 // Sets corner radius
@@ -539,12 +539,12 @@ ApplicationWindow {
                                 //elide: Text.ElideMiddle
                             }
 
-                            Text {
-                                id: speedLabel
-                                text: backend.speed.toFixed(1) + " MB/s"
-                                font.pixelSize: 12
-                                color: textColor
-                            }
+                            // Text {
+                            //     id: speedLabel
+                            //     text: backend.speed.toFixed(1) + " MB/s"
+                            //     font.pixelSize: 12
+                            //     color: textColor
+                            // }
                         }
 
                         ProgressBar {
