@@ -18,6 +18,8 @@ FMBackend::FMBackend(QObject* parent)
 FMBackend::~FMBackend() {
     m_timer->stop();
     stopProcessing();
+    // Ждем завершения задачи в пуле
+    QThreadPool::globalInstance()->waitForDone();
 }
 
 bool FMBackend::checkPathExists(const QString& path) {
@@ -169,8 +171,14 @@ void FMBackend::processFile(const QString& inputPath) {
     connect(processor, &FileProcessor::finished, this, &FMBackend::onFileProcessorFinished);
     connect(processor, &FileProcessor::sendError, this, &FMBackend::onFileProcessorError);
 
-    // Обработка файла
-    processor->run();
+    // Блокирующая Обработка файла
+    //processor->run();
+
+    // QRunnable processor по умолчанию имеет setAutoDelete(true), объект будет удалён после выполнения
+    processor->setAutoDelete(true);
+    // Асинхронная обработка в пуле потоков
+    QThreadPool::globalInstance()->start(processor);
+
 }
 
 void FMBackend::onFileProcessorFinished(const QString& inputPath, bool success) {
@@ -186,9 +194,10 @@ void FMBackend::onFileProcessorFinished(const QString& inputPath, bool success) 
     }
 
     // Удаляем объект процессора, чтобы не было утечки памяти
-    if (processor) {
-        processor->deleteLater();
-    }
+    // Хотя можно и не удалять вручнуЮ, если стоит флаг SetAuteDelete -> true
+    // if (processor) {
+    //     processor->deleteLater();
+    // }
 
     m_fileQueue.pop();
 
@@ -206,7 +215,9 @@ void FMBackend::onFileProcessorFinished(const QString& inputPath, bool success) 
         }
 
     } else {
-        processFile(m_fileQueue.front());
+        if (!m_fileQueue.empty()) {
+            processFile(m_fileQueue.front());
+        }
     }
 }
 
@@ -216,16 +227,18 @@ void FMBackend::onFileProcessorError(const QString& inputPath, const QString& er
 
 void FMBackend::onFileProcessorProgress(const QString& file, int bytesCount) {
     // Обновляем UI
-    m_processedBytes += bytesCount;
+    m_processedBytes += static_cast<uint64_t>(bytesCount);
 
     if (m_totalBytes == 0) return;
 
-    int percent = static_cast<int>((m_processedBytes * 100) / m_totalBytes);
+    // Дабл для защиты от переполнений в расчете, потом в инт
+    double percent = (static_cast<double>(m_processedBytes) / m_totalBytes) * 100.0;
+    int newProgress = static_cast<int>(percent);
 
     if(percent > m_currentProgress){
         //addLog(m_currentFile + " процент: " + QString::number(percent));
         m_currentProgress = percent;
-        m_currentSpeed = 0;
+        //m_currentSpeed = 0;
         m_currentFile = file;
         emit progressChanged();
     }

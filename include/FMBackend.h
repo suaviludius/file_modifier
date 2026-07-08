@@ -98,6 +98,7 @@ private:
     std::atomic<bool> m_paused = false;
     std::atomic<bool> m_stopRequested = false;
 
+    
     // Очередь in файлов найденых по маске
     std::queue<QString> m_fileQueue;
     // Текущий in файл
