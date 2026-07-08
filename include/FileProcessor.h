@@ -3,11 +3,12 @@
 
 #include <QObject>
 #include <QString>
+#include <QRunnable>
 
 #include <string>
 
 
-class FileProcessor : public QObject {
+class FileProcessor : public QObject, public QRunnable {
     Q_OBJECT
 public:
     constexpr static size_t MAX_CHUNK_SIZE = 1024 * 1024; // 1MB
@@ -24,7 +25,7 @@ public:
     //~FileProcessor() override = default;
 
     // Основной автомат работы обработчика
-    void run();
+    void run() override;
 
 signals:
     // Текущий прогресс в бекенда
