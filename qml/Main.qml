@@ -722,6 +722,10 @@ ApplicationWindow {
             outputError.text = "Путь сохранения не существует"
             outputError.visible = true
             valid = false
+        } else if(outputField.text == pathField.text){
+            outputError.text = "Путь сохранения должен отличаться от пути поиска"
+            outputError.visible = true
+            valid = false
         }
 
         // Проверка XOR значения
