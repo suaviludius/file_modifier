@@ -1,0 +1,24 @@
+📁 MyProject/
+├── CMakeLists.txt              # Корневой скрипт сборки
+├── main.cpp                    # Инициализация QApplication и QQmlApplicationEngine
+├── 📁 src/                     # Исходный код C++
+│   ├── 📁 model/               # БИЗНЕС-ЛОГИКА (Чистый C++)
+│   │   ├── xor_cipher.cpp      # Алгоритм шифрования
+│   │   └── file_worker.cpp     # Потоковая работа с файлами
+│   └── 📁 viewmodel/           # СВЯЗУЮЩИЙ СЛОЙ (QObject, Q_PROPERTY)
+│       ├── app_context.cpp     # Глобальный контекст / Менеджер окон
+│       └── xor_viewmodel.cpp   # Прослойка для экрана XOR-процессора
+└── 📁 qml/                     # ВИЗУАЛЬНЫЙ ИНТЕРФЕЙС (QML)
+    ├── main.qml                # Точка входа в UI (Контейнер окон)
+    ├── 📁 theme/               # ГЛОБАЛЬНЫЙ ДИЗАЙН
+    │   └── Theme.qml           # Синглтон с цветами, шрифтами и отступами
+    ├── 📁 components/          # АТОМАРНЫЕ КОМПОНЕНТЫ (UI-Kit)
+    │   ├── MyButton.qml        # Кастомная кнопка
+    │   ├── MyTextField.qml     # Кастомное поле ввода
+    │   └── ProgressBar.qml     # Индикатор прогресса
+    ├── 📁 views/               # КРУПНЫЕ ЭКРАНЫ / СТРАНИЦЫ
+    │   ├── DashboardView.qml   # Главный экран
+    │   └── ProcessingView.qml  # Экран выполнения операции
+    └── 📁 layouts/             # ШАБЛОНЫ И ПАНЕЛИ
+        ├── Sidebar.qml         # Боковое меню
+        └── Header.qml          # Верхняя панель

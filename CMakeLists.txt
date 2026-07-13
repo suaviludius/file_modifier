@@ -41,6 +41,15 @@ qt_add_qml_module(appfile_modifier
     URI file_modifier
     QML_FILES
         qml/Main.qml
+        # components
+        qml/components/MyButton.qml
+        qml/components/MyTextField.qml
+        qml/components/MyCheckBox.qml
+        qml/components/MyProgressBar.qml
+        # views
+        # singleton theme
+        qml/theme/Theme.qml
+        qml/theme/qmldir
 )
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
