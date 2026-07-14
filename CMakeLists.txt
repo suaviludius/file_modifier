@@ -37,8 +37,13 @@ target_include_directories(appfile_modifier
         ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
+set_source_files_properties(qml/theme/Theme.qml
+    PROPERTIES QT_QML_SINGLETON_TYPE TRUE
+)
+
 qt_add_qml_module(appfile_modifier
     URI file_modifier
+    RESOURCE_PREFIX "/qt/qml"
     QML_FILES
         qml/Main.qml
         # components
@@ -49,7 +54,6 @@ qt_add_qml_module(appfile_modifier
         # views
         # singleton theme
         qml/theme/Theme.qml
-        qml/theme/qmldir
 )
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
